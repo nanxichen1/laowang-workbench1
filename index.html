@@ -445,7 +445,7 @@ function renderTasks(){
   [{k:'q1',t:'重要且紧急 · 马上做',c:'#df4446'},{k:'q2',t:'重要不紧急 · 排时间做',c:'#3b7ce8'},{k:'q3',t:'其他 · 碎片时间做',c:'#999'}].forEach(q=>{
     const list=tasks.filter(x=>x.quad===q.k);
     html+=`<div class="quad q${q.k==='q1'?1:q.k==='q2'?2:3}">
-      <div class="quad-head"><span class="dot" style="background:${q.c}"></span>${q.t}<span class="badge">${list.filter(x=>!x.x).length}/${list.length}</span></div>
+      <div class="quad-head"><span class="dot" style="background:${q.c}"></span>${q.t}<span class="badge">${list.filter(x=>!x.done).length}/${list.length}</span></div>
       <div class="quad-body">${list.length?list.map(t=>`
         <div class="ti ${t.done?'done':''}">
           <input type="checkbox" ${t.done?'checked':''} onchange="tog(${t.id})">
