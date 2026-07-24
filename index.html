@@ -376,6 +376,9 @@ create policy "open" on wb_sync for all
 const $ = id => document.getElementById(id);
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1600); }
 function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// 单调递增唯一ID：避免同一毫秒内连续添加产生重复id，导致删/勾误伤多条
+let _lastId=0;
+function uid(){ let t=Date.now(); if(t<=_lastId) t=_lastId+1; _lastId=t; return t; }
 
 /* ==================== 导航 ==================== */
 const PAGES = [
@@ -421,14 +424,12 @@ function closeSidebar(){ $('sidebar').classList.remove('open'); $('overlay').cla
 const TK='wb_tasks_v2';
 let tasks=[];
 try{tasks=JSON.parse(localStorage.getItem(TK))||[];}catch(e){tasks=[];}
-function sv(){localStorage.setItem(TK,JSON.stringify(tasks));schedulePush();}
+function sv(){try{localStorage.setItem(TK,JSON.stringify(tasks));}catch(e){console.warn('[sv]',e);toast('本机存储写入失败');}schedulePush();}
 
 function addTask(){
-  const v=$('taskIn').value.trim(); if(!v)return;
-  tasks.push({id:Date.now(), text:v, quad:$('taskQ').value, done:false});
-  $('taskIn').value='';
-  try{ sv(); }catch(e){ console.warn('save failed',e); }
-  renderTasks(); $('taskIn').focus();
+  const inp=$('taskIn'); const v=inp.value.trim(); if(!v){toast('请输入任务内容');inp.focus();return;}
+  tasks.push({id:uid(), text:v, quad:$('taskQ').value, done:false});
+  inp.value=''; sv(); renderTasks(); inp.focus();
 }
 $('taskIn').addEventListener('keydown',e=>{ if(e.key==='Enter') addTask(); });
 
@@ -482,7 +483,7 @@ let curMonthLabel='';
 let curSelDate='';
 const pad=x=>String(x).padStart(2,'0');
 function todayStr(){const n=new Date();return `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`;}
-function svM(){localStorage.setItem(MK_M,JSON.stringify(monthTasks));schedulePush();}
+function svM(){try{localStorage.setItem(MK_M,JSON.stringify(monthTasks));}catch(e){console.warn('[svM]',e);toast('本机存储写入失败');}schedulePush();}
 
 function initMonth(){
   curMonthLabel=todayStr().slice(0,7);
@@ -548,17 +549,15 @@ function renderSelDay(){
     </div>`).join(''):`<div class="quad-empty">这天还没有计划，添加一条吧</div>`;
 }
 function addMonth(){
-  const v=$('monthIn').value.trim();if(!v)return;
+  const inp=$('monthIn'); const v=inp.value.trim();if(!v){toast('请输入计划内容');inp.focus();return;}
   if(!curSelDate)curSelDate=todayStr();
-  monthTasks.push({id:Date.now(),text:v,done:false,date:curSelDate,goal:''});
-  $('monthIn').value='';
-  try{ svM(); }catch(e){ console.warn('save failed',e); }
-  renderMonthAll();$('monthIn').focus();
+  monthTasks.push({id:uid(),text:v,done:false,date:curSelDate,goal:''});
+  inp.value=''; svM(); renderMonthAll(); inp.focus();
 }
 function addGoal(){
-  const v=$('goalIn').value.trim();if(!v)return;
-  monthTasks.push({id:Date.now(),text:v,done:false,date:'',goal:$('goalSel').value});
-  $('goalIn').value='';svM();renderGoals();
+  const inp=$('goalIn'); const v=inp.value.trim();if(!v){toast('请输入计划内容');inp.focus();return;}
+  monthTasks.push({id:uid(),text:v,done:false,date:'',goal:$('goalSel').value});
+  inp.value='';svM();renderGoals();
 }
 function togM(id){const t=monthTasks.find(x=>x.id===id);if(t){t.done=!t.done;svM();renderMonthAll();if(monthMode==='goal')renderGoals();}}
 function delM(id){monthTasks=monthTasks.filter(x=>x.id!==id);try{svM();}catch(e){}renderMonthAll();if(monthMode==='goal')renderGoals();}
@@ -583,6 +582,11 @@ function renderGoals(){
     </div>`;
   }).join('');
 }
+// 每月/目标输入框回车添加（此前 placeholder 写了"回车添加"但未绑定）
+(function(){
+  const mi=$('monthIn'); if(mi) mi.addEventListener('keydown',e=>{if(e.key==='Enter')addMonth();});
+  const gi=$('goalIn'); if(gi) gi.addEventListener('keydown',e=>{if(e.key==='Enter')addGoal();});
+})();
 initMonth();
 
 /* ==================== 灵感区 ==================== */
@@ -636,12 +640,15 @@ const MK='wb_memo_v1';
   try{$('memoArea').value=localStorage.getItem(MK)||'';}catch(e){}
 })();
 function saveMemo(){
-  localStorage.setItem(MK,$('memoArea').value);
+  try{ localStorage.setItem(MK,$('memoArea').value); }
+  catch(e){ console.warn('[memo]',e); toast('保存失败：存储空间不足或隐私模式'); return; }
   schedulePush();
-  toast('备忘录已保存');
+  toast('✅ 备忘录已保存');
 }
-// 自动防丢
-let memoTimer;setInterval(()=>{clearTimeout(memoTimer);memoTimer=setTimeout(()=>{localStorage.setItem(MK,$('memoArea').value);schedulePush();},2000)},5000);
+// 自动防丢：输入后 1.5 秒静默保存
+let memoTimer;
+function memoAutoSave(){ clearTimeout(memoTimer); memoTimer=setTimeout(()=>{ try{localStorage.setItem(MK,$('memoArea').value);schedulePush();}catch(e){} },1500); }
+(function(){ const m=$('memoArea'); if(m) m.addEventListener('input',memoAutoSave); })();
 
 /* ==================== 云端同步（Supabase） ==================== */
 const SYNC_CFG='wb_sync_cfg';
