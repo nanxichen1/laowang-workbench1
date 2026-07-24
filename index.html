@@ -165,12 +165,24 @@ a{color:var(--blue);text-decoration:none}
 .hi .hl{font-size:12px;color:var(--text4);flex-shrink:0}
 .hi .hlab{font-size:10.5px;color:#fff;background:var(--red);border-radius:4px;padding:1px 5px;flex-shrink:0}
 
-/* ---------- 备忘录 ---------- */
-.memo-area{width:100%;min-height:200px;border:1px solid var(--line2);border-radius:var(--radius);padding:14px 16px;font-size:14.5px;line-height:1.75;resize:vertical;outline:none;font-family:inherit;background:var(--white);color:var(--text)}
-.memo-area:focus{border-color:var(--green)}
+/* ---------- 备忘录（列表式） ---------- */
+.memo-input-row{display:flex;gap:8px;margin-bottom:16px}
+.memo-input-row input{flex:1;border:1px solid var(--line2);border-radius:10px;padding:11px 14px;font-size:14px;outline:none;background:var(--white);-webkit-appearance:none}
+.memo-input-row input:focus{border-color:var(--green)}
+.memo-add-btn{width:46px;border:none;background:var(--green);color:#222;border-radius:10px;font-size:22px;font-weight:700;cursor:pointer;flex-shrink:0;line-height:1}
+.memo-add-btn:active{opacity:.8}
+.memo-item{display:flex;align-items:flex-start;gap:10px;background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.memo-item .mi-txt{flex:1;font-size:14px;line-height:1.6;word-break:break-all;white-space:pre-wrap}
+.memo-item .mi-time{font-size:11px;color:var(--text4);flex-shrink:0;margin-top:3px}
+.memo-item .mi-del{border:none;background:none;color:var(--text4);cursor:pointer;font-size:15px;padding:2px 5px;border-radius:6px;flex-shrink:0}
+.memo-item .mi-del:active{color:var(--red);background:#fef1f1}
 .memo-tip{font-size:12px;color:var(--text4);margin-top:8px;text-align:center}
-.memo-save-btn{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:8px 24px;border:none;background:var(--green);color:#222;border-radius:99px;font-size:14px;font-weight:600;cursor:pointer}
-.memo-save-btn:active{opacity:.8}
+/* ---------- 目标卡内添加行 ---------- */
+.goal-add{display:flex;gap:8px;margin-top:10px}
+.goal-add input{flex:1;border:1px solid var(--line2);border-radius:9px;padding:8px 12px;font-size:13.5px;outline:none;background:var(--white);-webkit-appearance:none}
+.goal-add input:focus{border-color:var(--green)}
+.goal-add button{border:none;background:var(--green);color:#222;border-radius:9px;padding:0 16px;font-size:17px;font-weight:700;cursor:pointer}
+.goal-add button:active{opacity:.85}
 
 /* ---------- Toast ---------- */
 .toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(34,34,34,.9);color:#fff;padding:10px 22px;border-radius:99px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:999}
@@ -246,48 +258,13 @@ a{color:var(--blue);text-decoration:none}
         </div>
       </section>
 
-      <!-- ====== 页面：每月计划（月历+列表） ====== -->
+      <!-- ====== 页面：每月计划（目标制） ====== -->
       <section class="page" id="page-month">
-        <div class="month-bar">
-          <div class="month-tabs">
-            <button class="mtab active" id="tabCal" onclick="setMonthMode('cal')">月历</button>
-            <button class="mtab" id="tabGoal" onclick="setMonthMode('goal')">按目标</button>
-          </div>
-          <div class="month-nav" id="monthNav">
-            <span class="mn-arr" onclick="shiftMonth(-1)">‹</span>
-            <span id="monthLabel" class="mn-label">2026年7月</span>
-            <span class="mn-arr" onclick="shiftMonth(1)">›</span>
-          </div>
+        <div class="plan-input">
+          <input type="text" id="goalTitleIn" placeholder="输入新目标标题，如：涨粉1万…" maxlength="30">
+          <button onclick="addGoalTitle()">＋ 添加目标</button>
         </div>
-
-        <div id="monthCalWrap">
-          <div class="cal-head">
-            <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
-          </div>
-          <div class="cal-grid" id="calGrid"></div>
-          <div class="sel-day" id="selDayBox" style="display:none">
-            <div class="sel-day-head"><span id="selDayTitle">计划</span><span id="selDayCount" class="badge">0/0</span></div>
-            <div class="sel-day-list" id="selDayList"></div>
-            <div class="plan-input" style="margin-top:10px">
-              <input type="text" id="monthIn" placeholder="给这天加计划，回车添加…" maxlength="80">
-              <button onclick="addMonth()">添加</button>
-            </div>
-          </div>
-        </div>
-
-        <div id="monthGoalWrap" style="display:none">
-          <div id="goalGroups"></div>
-          <div class="plan-input" style="margin-top:10px">
-            <input type="text" id="goalIn" placeholder="加一条计划…" maxlength="80">
-            <select id="goalSel">
-              <option value="涨粉">涨粉</option>
-              <option value="带货">带货</option>
-              <option value="内容">内容</option>
-            </select>
-            <button onclick="addGoal()">添加</button>
-          </div>
-        </div>
-
+        <div id="goalGroups"></div>
         <div class="plan-foot">
           <span id="monthProg"></span>
           <button onclick="clearMonthDone()">清除已完成</button>
@@ -315,11 +292,14 @@ a{color:var(--blue);text-decoration:none}
         </div>
       </section>
 
-      <!-- ====== 页面：备忘录 ====== -->
+      <!-- ====== 页面：备忘录（列表式） ====== -->
       <section class="page" id="page-memo">
-        <textarea class="memo-area" id="memoArea" placeholder="在这里记录任何想法、话术、素材、待办提醒…&#10;&#10;数据自动保存在本机，刷新不丢失。"></textarea>
-        <div style="text-align:center"><button class="memo-save-btn" onclick="saveMemo()">💾 保存备忘录</button></div>
-        <p class="memo-tip">提示：内容会自动保存到本机浏览器存储中</p>
+        <div class="memo-input-row">
+          <input type="text" id="memoIn" placeholder="记录想法、话术、素材、待办提醒…" maxlength="500">
+          <button class="memo-add-btn" onclick="addMemo()" title="添加备忘录">＋</button>
+        </div>
+        <div id="memoList"></div>
+        <p class="memo-tip" id="memoTip">还没有备忘录，输入内容后点右侧 ＋ 添加</p>
       </section>
 
       <!-- ====== 页面：同步设置 ====== -->
@@ -379,6 +359,8 @@ function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 // 单调递增唯一ID：避免同一毫秒内连续添加产生重复id，导致删/勾误伤多条
 let _lastId=0;
 function uid(){ let t=Date.now(); if(t<=_lastId) t=_lastId+1; _lastId=t; return t; }
+const pad=x=>String(x).padStart(2,'0');
+function todayStr(){const n=new Date();return `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`;}
 
 /* ==================== 导航 ==================== */
 const PAGES = [
@@ -422,8 +404,21 @@ function closeSidebar(){ $('sidebar').classList.remove('open'); $('overlay').cla
 
 /* ==================== 任务管理 ==================== */
 const TK='wb_tasks_v2';
+const DAYK='wb_last_day';
 let tasks=[];
 try{tasks=JSON.parse(localStorage.getItem(TK))||[];}catch(e){tasks=[];}
+// 跨天滚动：新的一天打开时，昨天没勾选的任务默认保留，已完成的自动清除
+(function(){
+  const today=todayStr();
+  let last=null; try{last=localStorage.getItem(DAYK);}catch(e){}
+  if(last && last!==today && tasks.some(t=>t.done)){
+    const n=tasks.filter(t=>t.done).length;
+    tasks=tasks.filter(t=>!t.done);
+    try{localStorage.setItem(TK,JSON.stringify(tasks));}catch(e){}
+    setTimeout(()=>toast(`新的一天：已清除昨日完成的 ${n} 条，未完成的已保留`),600);
+  }
+  try{localStorage.setItem(DAYK,today);}catch(e){}
+})();
 function sv(){try{localStorage.setItem(TK,JSON.stringify(tasks));}catch(e){console.warn('[sv]',e);toast('本机存储写入失败');}schedulePush();}
 
 function addTask(){
@@ -472,122 +467,65 @@ if(!localStorage.getItem(TK)){
 }
 renderTasks();
 
-/* ==================== 每月计划（月历+列表） ==================== */
+/* ==================== 每月计划（目标制） ==================== */
 const MK_M='wb_month_v1';
+const GK='wb_goals_v1';
 let monthTasks=[];
 try{monthTasks=JSON.parse(localStorage.getItem(MK_M))||[];}catch(e){monthTasks=[];}
-// 兼容旧格式（无 date/goal 字段）
-monthTasks=monthTasks.map(t=>({id:t.id,text:t.text,done:!!t.done,date:t.date||'',goal:t.goal||''}));
-let monthMode='cal';
-let curMonthLabel='';
-let curSelDate='';
-const pad=x=>String(x).padStart(2,'0');
-function todayStr(){const n=new Date();return `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`;}
+monthTasks=monthTasks.map(t=>({id:t.id,text:t.text,done:!!t.done,goal:t.goal||''}));
+let goals=null;
+try{goals=JSON.parse(localStorage.getItem(GK));}catch(e){goals=null;}
+if(!Array.isArray(goals)||!goals.length) goals=['目标1','目标2','目标3','目标4','目标5'];
+// 旧数据迁移：旧分类(涨粉/带货/内容)保留为额外目标；无归属内容归入第一个目标
+monthTasks.forEach(t=>{ if(!t.goal) t.goal=goals[0]; if(!goals.includes(t.goal)) goals.push(t.goal); });
+function svG(){try{localStorage.setItem(GK,JSON.stringify(goals));}catch(e){console.warn('[svG]',e);}}
 function svM(){try{localStorage.setItem(MK_M,JSON.stringify(monthTasks));}catch(e){console.warn('[svM]',e);toast('本机存储写入失败');}schedulePush();}
+svG();
 
-function initMonth(){
-  curMonthLabel=todayStr().slice(0,7);
-  curSelDate=todayStr();
-  renderMonthAll();
+function addGoalTitle(){
+  const inp=$('goalTitleIn'); const v=inp.value.trim();
+  if(!v){toast('请输入目标标题');inp.focus();return;}
+  if(goals.includes(v)){toast('已有同名目标');return;}
+  goals.push(v); svG(); schedulePush(); inp.value=''; renderGoals(); inp.focus();
+  toast('✅ 目标已添加');
 }
-function setMonthMode(m){
-  monthMode=m;
-  $('tabCal').classList.toggle('active',m==='cal');
-  $('tabGoal').classList.toggle('active',m==='goal');
-  $('monthCalWrap').style.display=m==='cal'?'':'none';
-  $('monthGoalWrap').style.display=m==='goal'?'':'none';
-  $('monthNav').style.display=m==='cal'?'':'none';
-  if(m==='goal')renderGoals(); else renderMonthAll();
+function addGoalItem(gi){
+  const inp=$('gin_'+gi); if(!inp)return;
+  const v=inp.value.trim(); if(!v){toast('请输入内容');inp.focus();return;}
+  monthTasks.push({id:uid(),text:v,done:false,goal:goals[gi]});
+  svM(); renderGoals();
+  const again=$('gin_'+gi); if(again)again.focus();
 }
-function shiftMonth(dir){
-  let [y,m]=curMonthLabel.split('-').map(Number);
-  m+=dir; if(m<1){m=12;y--;} if(m>12){m=1;y++;}
-  curMonthLabel=`${y}-${pad(m)}`; curSelDate='';
-  renderMonthAll();
-}
-function renderMonthAll(){
-  const [y,m]=curMonthLabel.split('-').map(Number);
-  $('monthLabel').textContent=`${y}年${m}月`;
-  const first=new Date(y,m-1,1);
-  const startDow=(first.getDay()+6)%7;
-  const days=new Date(y,m,0).getDate();
-  const tasksOf=d=>monthTasks.filter(t=>t.date===d);
-  let html='';
-  for(let i=0;i<startDow;i++)html+='<span class="cal-cell empty"></span>';
-  for(let d=1;d<=days;d++){
-    const ds=`${curMonthLabel}-${pad(d)}`;
-    const cnt=tasksOf(ds).length;
-    const done=tasksOf(ds).filter(t=>t.done).length;
-    const isToday=ds===todayStr();
-    const isSel=ds===curSelDate;
-    const cls='cal-cell'+(cnt?' has':'')+(isSel?' sel':'')+(isToday?' today':'');
-    html+=`<div class="${cls}" onclick="selDay('${ds}')">
-      <span>${d}</span>
-      ${cnt?`<span class="cdot"></span><span class="ccount">${done}/${cnt}</span>`:''}
-    </div>`;
-  }
-  $('calGrid').innerHTML=html;
-  renderSelDay();
-  const dn=monthTasks.filter(t=>t.done).length;
-  $('monthProg').textContent=monthTasks.length?`本月进度 ${dn}/${monthTasks.length}`:'还没有本月计划';
-}
-function selDay(ds){curSelDate=ds;renderMonthAll();}
-function renderSelDay(){
-  const box=$('selDayBox');
-  if(!curSelDate){box.style.display='none';return;}
-  box.style.display='';
-  const [,,d]=curSelDate.split('-').map(Number);
-  const [,m]=curSelDate.split('-').map(Number);
-  const list=monthTasks.filter(t=>t.date===curSelDate);
-  $('selDayTitle').textContent=`${m}月${d}日 计划`;
-  $('selDayCount').textContent=`${list.filter(t=>t.done).length}/${list.length}`;
-  $('selDayList').innerHTML=list.length?list.map(t=>`
-    <div class="ti ${t.done?'done':''}">
-      <input type="checkbox" ${t.done?'checked':''} onchange="togM(${t.id})">
-      <span class="ti-txt">${esc(t.text)}</span>
-      <button class="ti-del" onclick="delM(${t.id})">✕</button>
-    </div>`).join(''):`<div class="quad-empty">这天还没有计划，添加一条吧</div>`;
-}
-function addMonth(){
-  const inp=$('monthIn'); const v=inp.value.trim();if(!v){toast('请输入计划内容');inp.focus();return;}
-  if(!curSelDate)curSelDate=todayStr();
-  monthTasks.push({id:uid(),text:v,done:false,date:curSelDate,goal:''});
-  inp.value=''; svM(); renderMonthAll(); inp.focus();
-}
-function addGoal(){
-  const inp=$('goalIn'); const v=inp.value.trim();if(!v){toast('请输入计划内容');inp.focus();return;}
-  monthTasks.push({id:uid(),text:v,done:false,date:'',goal:$('goalSel').value});
-  inp.value='';svM();renderGoals();
-}
-function togM(id){const t=monthTasks.find(x=>x.id===id);if(t){t.done=!t.done;svM();renderMonthAll();if(monthMode==='goal')renderGoals();}}
-function delM(id){monthTasks=monthTasks.filter(x=>x.id!==id);try{svM();}catch(e){}renderMonthAll();if(monthMode==='goal')renderGoals();}
+function togM(id){const t=monthTasks.find(x=>x.id===id);if(t){t.done=!t.done;svM();renderGoals();}}
+function delM(id){monthTasks=monthTasks.filter(x=>x.id!==id);try{svM();}catch(e){}renderGoals();}
 function clearMonthDone(){
   const n=monthTasks.filter(t=>t.done).length;if(!n){toast('没有已完成的');return;}
-  monthTasks=monthTasks.filter(t=>!t.done);svM();renderMonthAll();if(monthMode==='goal')renderGoals();toast(`清除了 ${n} 条`);
+  monthTasks=monthTasks.filter(t=>!t.done);svM();renderGoals();toast(`清除了 ${n} 条`);
 }
 function renderGoals(){
-  const goals=['涨粉','带货','内容'];
-  $('goalGroups').innerHTML=goals.map(g=>{
+  $('goalGroups').innerHTML=goals.map((g,gi)=>{
     const list=monthTasks.filter(t=>t.goal===g);
     const done=list.filter(t=>t.done).length;
-    return `<div class="quad">
-      <div class="quad-head"><span class="dot" style="background:#e0a800"></span>${g}目标<span class="badge">${done}/${list.length}</span></div>
+    return `<div class="quad" style="margin-bottom:14px">
+      <div class="quad-head"><span class="dot" style="background:#e0a800"></span>🎯 ${esc(g)}<span class="badge">${done}/${list.length}</span></div>
       <div class="quad-body">${list.length?list.map(t=>`
         <div class="ti ${t.done?'done':''}">
           <input type="checkbox" ${t.done?'checked':''} onchange="togM(${t.id})">
           <span class="ti-txt">${esc(t.text)}</span>
           <button class="ti-del" onclick="delM(${t.id})">✕</button>
-        </div>`).join(''):`<div class="quad-empty">暂无${g}目标计划</div>`}
+        </div>`).join(''):`<div class="quad-empty">这个目标还没有内容，在下方添加</div>`}
+        <div class="goal-add">
+          <input type="text" id="gin_${gi}" placeholder="给「${esc(g)}」加一条内容，回车或＋" maxlength="80" onkeydown="if(event.key==='Enter')addGoalItem(${gi})">
+          <button onclick="addGoalItem(${gi})">＋</button>
+        </div>
       </div>
     </div>`;
   }).join('');
+  const dn=monthTasks.filter(t=>t.done).length;
+  $('monthProg').textContent=monthTasks.length?`目标进度 ${dn}/${monthTasks.length}`:'还没有目标内容';
 }
-// 每月/目标输入框回车添加（此前 placeholder 写了"回车添加"但未绑定）
-(function(){
-  const mi=$('monthIn'); if(mi) mi.addEventListener('keydown',e=>{if(e.key==='Enter')addMonth();});
-  const gi=$('goalIn'); if(gi) gi.addEventListener('keydown',e=>{if(e.key==='Enter')addGoal();});
-})();
-initMonth();
+(function(){const gt=$('goalTitleIn'); if(gt) gt.addEventListener('keydown',e=>{if(e.key==='Enter')addGoalTitle();});})();
+renderGoals();
 
 /* ==================== 灵感区 ==================== */
 (function(){
@@ -634,21 +572,46 @@ function cp(t){navigator.clipboard?navigator.clipboard.writeText(t).then(()=>toa
     </div>`).join('');
 })();
 
-/* ==================== 备忘录 ==================== */
-const MK='wb_memo_v1';
+/* ==================== 备忘录（列表式） ==================== */
+const MK='wb_memo_v1';    // 旧版整篇文本（仅迁移用）
+const MEMK='wb_memos_v1'; // 新版列表
+let memos=[];
+try{memos=JSON.parse(localStorage.getItem(MEMK))||[];}catch(e){memos=[];}
+// 旧版迁移：把旧的整篇备忘文本转成第一条
 (function(){
-  try{$('memoArea').value=localStorage.getItem(MK)||'';}catch(e){}
+  let hasNew=false; try{hasNew=localStorage.getItem(MEMK)!==null;}catch(e){}
+  if(hasNew)return;
+  let old=''; try{old=localStorage.getItem(MK)||'';}catch(e){}
+  if(old.trim()){
+    memos=[{id:uid(),text:old.trim(),ts:new Date().toISOString()}];
+    try{localStorage.setItem(MEMK,JSON.stringify(memos));}catch(e){}
+  }
 })();
-function saveMemo(){
-  try{ localStorage.setItem(MK,$('memoArea').value); }
-  catch(e){ console.warn('[memo]',e); toast('保存失败：存储空间不足或隐私模式'); return; }
-  schedulePush();
-  toast('✅ 备忘录已保存');
+function svMemo(){
+  try{ localStorage.setItem(MEMK,JSON.stringify(memos)); }
+  catch(e){ console.warn('[memo]',e); toast('保存失败：存储空间不足或隐私模式'); return false; }
+  schedulePush(); return true;
 }
-// 自动防丢：输入后 1.5 秒静默保存
-let memoTimer;
-function memoAutoSave(){ clearTimeout(memoTimer); memoTimer=setTimeout(()=>{ try{localStorage.setItem(MK,$('memoArea').value);schedulePush();}catch(e){} },1500); }
-(function(){ const m=$('memoArea'); if(m) m.addEventListener('input',memoAutoSave); })();
+function addMemo(){
+  const inp=$('memoIn'); const v=inp.value.trim();
+  if(!v){toast('请输入备忘内容');inp.focus();return;}
+  memos.unshift({id:uid(),text:v,ts:new Date().toISOString()});
+  const ok=svMemo();
+  inp.value=''; renderMemos(); inp.focus();
+  if(ok)toast('✅ 已添加');
+}
+function delMemo(id){memos=memos.filter(m=>m.id!==id);svMemo();renderMemos();}
+function renderMemos(){
+  $('memoList').innerHTML=memos.map(m=>`
+    <div class="memo-item">
+      <span class="mi-txt">${esc(m.text)}</span>
+      <span class="mi-time">${(m.ts||'').slice(5,10).replace('-','/')}</span>
+      <button class="mi-del" onclick="delMemo(${m.id})">✕</button>
+    </div>`).join('');
+  const tip=$('memoTip'); if(tip)tip.style.display=memos.length?'none':'';
+}
+(function(){const mi=$('memoIn'); if(mi) mi.addEventListener('keydown',e=>{if(e.key==='Enter')addMemo();});})();
+renderMemos();
 
 /* ==================== 云端同步（Supabase） ==================== */
 const SYNC_CFG='wb_sync_cfg';
@@ -681,7 +644,7 @@ function schedulePush(){
   clearTimeout(pushTimer);
   pushTimer=setTimeout(async()=>{
     try{
-      const payload={tasks,monthTasks,memo:localStorage.getItem(MK)||'',ts:new Date().toISOString()};
+      const payload={tasks,monthTasks,goals,memos,ts:new Date().toISOString()};
       await sbPush(c.code,payload);
       syncStatus('☁️ 已同步到云端 '+new Date().toLocaleTimeString('zh-CN'),true);
     }catch(e){syncStatus('☁️ 同步失败：'+(c?'检查网络/配置':'未配置'),false);}
@@ -694,8 +657,10 @@ async function cloudPull(){
     const row=await sbPull(c.code);
     if(row&&row.payload){
       if(row.payload.tasks){tasks=row.payload.tasks;localStorage.setItem(TK,JSON.stringify(tasks));renderTasks();}
-      if(row.payload.monthTasks){monthTasks=row.payload.monthTasks.map(t=>({id:t.id,text:t.text,done:!!t.done,date:t.date||'',goal:t.goal||''}));localStorage.setItem(MK_M,JSON.stringify(monthTasks));renderMonthAll();}
-      if(row.payload.memo){localStorage.setItem(MK,row.payload.memo);const m=$('memoArea');if(m)m.value=row.payload.memo;}
+      if(Array.isArray(row.payload.goals)&&row.payload.goals.length){goals=row.payload.goals;svG();}
+      if(row.payload.monthTasks){monthTasks=row.payload.monthTasks.map(t=>({id:t.id,text:t.text,done:!!t.done,goal:t.goal||goals[0]}));monthTasks.forEach(t=>{if(!goals.includes(t.goal))goals.push(t.goal);});svG();localStorage.setItem(MK_M,JSON.stringify(monthTasks));renderGoals();}
+      if(Array.isArray(row.payload.memos)){memos=row.payload.memos;localStorage.setItem(MEMK,JSON.stringify(memos));renderMemos();}
+      else if(row.payload.memo){memos=[{id:uid(),text:row.payload.memo,ts:new Date().toISOString()}];localStorage.setItem(MEMK,JSON.stringify(memos));renderMemos();}
       syncStatus('☁️ 已从云端拉取最新 '+new Date().toLocaleTimeString('zh-CN'),true);
     }else{
       syncStatus('☁️ 云端暂无数据，已保留本机',true);
@@ -711,7 +676,7 @@ function doSync(){
   toast('正在同步到云端…');
 }
 function exportJSON(){
-  const data={tasks,monthTasks,memo:localStorage.getItem(MK)||'',ts:new Date().toISOString()};
+  const data={tasks,monthTasks,goals,memos,ts:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=`workbench_backup_${new Date().toISOString().slice(0,10)}.json`;a.click();
@@ -724,8 +689,10 @@ function importData(file){
     try{
       const d=JSON.parse(fr.result);
       if(d.tasks){tasks=d.tasks;sv();renderTasks();}
-      if(d.monthTasks){monthTasks=d.monthTasks.map(t=>({id:t.id,text:t.text,done:!!t.done,date:t.date||'',goal:t.goal||''}));svM();renderMonthAll();}
-      if(d.memo){localStorage.setItem(MK,d.memo);$('memoArea').value=d.memo;}
+      if(Array.isArray(d.goals)&&d.goals.length){goals=d.goals;svG();}
+      if(d.monthTasks){monthTasks=d.monthTasks.map(t=>({id:t.id,text:t.text,done:!!t.done,goal:t.goal||goals[0]}));monthTasks.forEach(t=>{if(!goals.includes(t.goal))goals.push(t.goal);});svG();svM();renderGoals();}
+      if(Array.isArray(d.memos)){memos=d.memos;svMemo();renderMemos();}
+      else if(d.memo){memos=[{id:uid(),text:d.memo,ts:new Date().toISOString()}];svMemo();renderMemos();}
       toast('数据导入成功！');
     }catch(e){toast('文件格式错误');}
   };

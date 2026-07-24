@@ -1,5 +1,5 @@
 /* Service Worker - 图书带货工作台 PWA */
-const CACHE = 'wb-v3';
+const CACHE = 'wb-v4';
 const ASSETS = [
   './',
   './index.html',
