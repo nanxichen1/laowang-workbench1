@@ -616,7 +616,16 @@ renderMemos();
 /* ==================== 云端同步（Supabase） ==================== */
 const SYNC_CFG='wb_sync_cfg';
 const SB_TABLE='wb_sync';
-function getCfg(){try{return JSON.parse(localStorage.getItem(SYNC_CFG))||null;}catch(e){return null;}}
+// 内置默认云端配置：网页/APP 打开即自动同步，无需手填。两端用同一同步码即互通。
+// 注意：内联返回对象，避免早期 getCfg() 调用触发 const 暂时性死区
+function getCfg(){
+  try{const c=JSON.parse(localStorage.getItem(SYNC_CFG));if(c&&c.url&&c.key&&c.code)return c;}catch(e){}
+  return {
+    url:'https://lchwlkzrxpywglhcdrpl.supabase.co',
+    key:'sb_publishable_WU3fcOoh5FNCU1HrdrIM7w_MrPeCHNW',
+    code:'laowang_7x9k2'
+  };
+}
 function setCfg(c){localStorage.setItem(SYNC_CFG,JSON.stringify(c));}
 function syncStatus(msg,ok){const s=$('syncState');if(s){s.textContent=msg;s.style.color=ok===false?'#df4446':ok?'#e0a800':'#999';}}
 
@@ -624,7 +633,7 @@ async function sbPush(code,payload){
   const c=getCfg();if(!c||!c.url||!c.key)throw'no-config';
   const res=await fetch(`${c.url}/rest/v1/${SB_TABLE}?on_conflict=code`,{
     method:'POST',
-    headers:{'Content-Type':'application/json','apikey':c.key,'Authorization':'Bearer '+c.key,'Prefer':'resolution=merge,return=minimal'},
+    headers:{'Content-Type':'application/json','apikey':c.key,'Authorization':'Bearer '+c.key,'Prefer':'resolution=merge-duplicates,return=minimal'},
     body:JSON.stringify({code,payload,updated_at:new Date().toISOString()})
   });
   if(!res.ok)throw'push-fail:'+res.status;
@@ -638,7 +647,7 @@ async function sbPull(code){
   const rows=await res.json();return rows[0]||null;
 }
 
-let pushTimer;
+var pushTimer; // 用 var 提升声明：初始化早期的迁移会调用 schedulePush，避免 let 暂时性死区
 function schedulePush(){
   const c=getCfg();if(!c)return; // 未配置则不推送
   clearTimeout(pushTimer);
@@ -663,7 +672,10 @@ async function cloudPull(){
       else if(row.payload.memo){memos=[{id:uid(),text:row.payload.memo,ts:new Date().toISOString()}];localStorage.setItem(MEMK,JSON.stringify(memos));renderMemos();}
       syncStatus('☁️ 已从云端拉取最新 '+new Date().toLocaleTimeString('zh-CN'),true);
     }else{
-      syncStatus('☁️ 云端暂无数据，已保留本机',true);
+      // 云端为空：若本机已有数据，则把本机作为种子推上去，避免被空数据覆盖
+      const hasLocal=(tasks&&tasks.length)||(monthTasks&&monthTasks.length)||(memos&&memos.length);
+      if(hasLocal){try{await sbPush(c.code,{tasks,monthTasks,goals,memos,ts:new Date().toISOString()});syncStatus('☁️ 已上传本机数据到云端',true);}catch(e){syncStatus('☁️ 云端暂无数据，已保留本机',true);}}
+      else{syncStatus('☁️ 云端暂无数据，已保留本机',true);}
     }
   }catch(e){syncStatus('☁️ 拉取失败，使用本机数据',false);}
 }
