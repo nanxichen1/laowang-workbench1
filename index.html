@@ -463,7 +463,7 @@ if(!localStorage.getItem(TK)){
     {id:3,text:'规划下周暑期档选题排期（存3条备用脚本）',quad:'q2',done:false},
     {id:4,text:'研究3个同类账号的转场话术',quad:'q2',done:false},
     {id:5,text:'回复粉丝评论、维护老客群',quad:'q3',done:false}
-  ];sv();
+  ];try{localStorage.setItem(TK,JSON.stringify(tasks));}catch(e){}
 }
 renderTasks();
 
@@ -684,8 +684,8 @@ async function cloudPull(){
 function doSync(){
   const c=getCfg();
   if(!c){exportJSON();return;}
-  schedulePush();
-  toast('正在同步到云端…');
+  toast('正在从云端拉取最新…');
+  cloudPull().then(()=>schedulePush());
 }
 function exportJSON(){
   const data={tasks,monthTasks,goals,memos,ts:new Date().toISOString()};
@@ -741,6 +741,11 @@ if(getCfg()){ cloudPull(); }
     const s=$('syncState');if(s)s.textContent='已配置 · 云端同步开启';
   }
 })();
+
+// 实时同步：手机端不重启 App 也能自动拿到另一端的改动
+// 每 30 秒从云端拉取一次；切回前台（从后台返回）立即拉取一次
+setInterval(()=>{ if(document.visibilityState==='visible') cloudPull(); }, 30000);
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') cloudPull(); });
 
 /* ==================== 初始化导航 ==================== */
 renderNav();
