@@ -107,6 +107,9 @@ a{color:var(--blue);text-decoration:none}
 .quad-head{display:flex;align-items:center;gap:8px;padding:12px 16px;font-size:14px;font-weight:700}
 .quad-head .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .quad-head .badge{margin-left:auto;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:rgba(0,0,0,.05);color:var(--text2)}
+.quad-head .ti-del{margin-left:8px;border:none;background:none;color:var(--text4);cursor:pointer;font-size:15px;line-height:1;padding:2px 6px;border-radius:6px}
+.quad-head .ti-del:hover{color:var(--red);background:#fef1f1}
+.quad-head .ti-del:active{transform:scale(.92)}
 .quad.q1 .quad-head{color:var(--red)} .quad.q1 .dot{background:var(--red)}
 .quad.q2 .quad-head{color:var(--blue)} .quad.q2 .dot{background:var(--blue)}
 .quad.q3 .quad-head{color:var(--text3)} .quad.q3 .dot{background:var(--text4)}
@@ -498,6 +501,15 @@ function addGoalItem(gi){
 }
 function togM(id){const t=monthTasks.find(x=>x.id===id);if(t){t.done=!t.done;svM();renderGoals();}}
 function delM(id){monthTasks=monthTasks.filter(x=>x.id!==id);try{svM();}catch(e){}renderGoals();}
+function delGoal(gi){
+  const g=goals[gi]; if(g===undefined)return;
+  const cnt=monthTasks.filter(t=>t.goal===g).length;
+  if(cnt>0 && !confirm(`目标「${g}」下还有 ${cnt} 条内容，删除目标会一并删除这些内容，确定吗？`)) return;
+  goals.splice(gi,1);
+  monthTasks=monthTasks.filter(t=>t.goal!==g);
+  svG(); svM(); renderGoals();
+  toast('已删除目标：'+g);
+}
 function clearMonthDone(){
   const n=monthTasks.filter(t=>t.done).length;if(!n){toast('没有已完成的');return;}
   monthTasks=monthTasks.filter(t=>!t.done);svM();renderGoals();toast(`清除了 ${n} 条`);
@@ -507,7 +519,7 @@ function renderGoals(){
     const list=monthTasks.filter(t=>t.goal===g);
     const done=list.filter(t=>t.done).length;
     return `<div class="quad" style="margin-bottom:14px">
-      <div class="quad-head"><span class="dot" style="background:#e0a800"></span>🎯 ${esc(g)}<span class="badge">${done}/${list.length}</span></div>
+      <div class="quad-head"><span class="dot" style="background:#e0a800"></span>🎯 ${esc(g)}<span class="badge">${done}/${list.length}</span><button class="ti-del" onclick="delGoal(${gi})" title="删除此目标">✕</button></div>
       <div class="quad-body">${list.length?list.map(t=>`
         <div class="ti ${t.done?'done':''}">
           <input type="checkbox" ${t.done?'checked':''} onchange="togM(${t.id})">
