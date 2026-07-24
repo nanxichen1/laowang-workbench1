@@ -360,8 +360,9 @@ const $ = id => document.getElementById(id);
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1600); }
 function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 // 单调递增唯一ID：避免同一毫秒内连续添加产生重复id，导致删/勾误伤多条
-let _lastId=0;
-function uid(){ let t=Date.now(); if(t<=_lastId) t=_lastId+1; _lastId=t; return t; }
+// 跨设备防碰撞：时间戳 + 每次加载随机后缀 + 随机尾，保证两端 id 不会撞
+let _uidSuf=Math.random().toString(36).slice(2,8);
+function uid(){ return Date.now().toString(36)+'-'+_uidSuf+'-'+Math.random().toString(36).slice(2,6); }
 const pad=x=>String(x).padStart(2,'0');
 function todayStr(){const n=new Date();return `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`;}
 
@@ -409,7 +410,7 @@ function closeSidebar(){ $('sidebar').classList.remove('open'); $('overlay').cla
 const TK='wb_tasks_v2';
 const DAYK='wb_last_day';
 let tasks=[];
-try{tasks=JSON.parse(localStorage.getItem(TK))||[];}catch(e){tasks=[];}
+try{tasks=(JSON.parse(localStorage.getItem(TK))||[]).map(t=>({...t,id:String(t.id)}));}catch(e){tasks=[];}
 // 跨天滚动：新的一天打开时，昨天没勾选的任务默认保留，已完成的自动清除
 (function(){
   const today=todayStr();
@@ -417,7 +418,7 @@ try{tasks=JSON.parse(localStorage.getItem(TK))||[];}catch(e){tasks=[];}
   if(last && last!==today && tasks.some(t=>t.done)){
     const n=tasks.filter(t=>t.done).length;
     tasks=tasks.filter(t=>!t.done);
-    try{localStorage.setItem(TK,JSON.stringify(tasks));}catch(e){}
+    sv();
     setTimeout(()=>toast(`新的一天：已清除昨日完成的 ${n} 条，未完成的已保留`),600);
   }
   try{localStorage.setItem(DAYK,today);}catch(e){}
@@ -431,11 +432,12 @@ function addTask(){
 }
 $('taskIn').addEventListener('keydown',e=>{ if(e.key==='Enter') addTask(); });
 
-function tog(id){const t=tasks.find(x=>x.id===id);if(t){t.done=!t.done;sv();renderTasks();}}
-function delT(id){tasks=tasks.filter(x=>x.id!==id);try{sv();}catch(e){}renderTasks();}
+function tog(id){id=String(id);const t=tasks.find(x=>x.id===id);if(t){t.done=!t.done;sv();renderTasks();}}
+function delT(id){id=String(id);tasks=tasks.filter(x=>x.id!==id);if(!deletedIds.includes(id))deletedIds.push(id);sv();svD();renderTasks();}
 function clearDone(){
-  const n=tasks.filter(t=>t.done).length; if(!n){toast('没有已完成的');return;}
-  tasks=tasks.filter(t=>!t.done);sv();renderTasks();toast(`清除了 ${n} 条`);
+  const doneTasks=tasks.filter(t=>t.done);const n=doneTasks.length; if(!n){toast('没有已完成的');return;}
+  doneTasks.forEach(t=>{const i=String(t.id);if(!deletedIds.includes(i))deletedIds.push(i);});
+  tasks=tasks.filter(t=>!t.done);sv();svD();renderTasks();toast(`清除了 ${n} 条`);
 }
 
 function renderTasks(){
@@ -447,9 +449,9 @@ function renderTasks(){
       <div class="quad-head"><span class="dot" style="background:${q.c}"></span>${q.t}<span class="badge">${list.filter(x=>!x.done).length}/${list.length}</span></div>
       <div class="quad-body">${list.length?list.map(t=>`
         <div class="ti ${t.done?'done':''}">
-          <input type="checkbox" ${t.done?'checked':''} onchange="tog(${t.id})">
+          <input type="checkbox" ${t.done?'checked':''} onchange="tog('${t.id}')">
           <span class="ti-txt">${esc(t.text)}</span>
-          <button class="ti-del" onclick="delT(${t.id})">✕</button>
+          <button class="ti-del" onclick="delT('${t.id}')">✕</button>
         </div>`).join(''):`<div class="quad-empty">暂无任务</div>`}
       </div>`;
   });
@@ -461,11 +463,11 @@ function renderTasks(){
 // 首次预置
 if(!localStorage.getItem(TK)){
   tasks=[
-    {id:1,text:'拍1条「菲尔兹奖数学家」二创视频（挂《国之脊梁》链接）',quad:'q1',done:false},
-    {id:2,text:'检查昨日视频完播率≥35%、挂链点击率≥3%',quad:'q1',done:false},
-    {id:3,text:'规划下周暑期档选题排期（存3条备用脚本）',quad:'q2',done:false},
-    {id:4,text:'研究3个同类账号的转场话术',quad:'q2',done:false},
-    {id:5,text:'回复粉丝评论、维护老客群',quad:'q3',done:false}
+    {id:'1',text:'拍1条「菲尔兹奖数学家」二创视频（挂《国之脊梁》链接）',quad:'q1',done:false},
+    {id:'2',text:'检查昨日视频完播率≥35%、挂链点击率≥3%',quad:'q1',done:false},
+    {id:'3',text:'规划下周暑期档选题排期（存3条备用脚本）',quad:'q2',done:false},
+    {id:'4',text:'研究3个同类账号的转场话术',quad:'q2',done:false},
+    {id:'5',text:'回复粉丝评论、维护老客群',quad:'q3',done:false}
   ];try{localStorage.setItem(TK,JSON.stringify(tasks));}catch(e){}
 }
 renderTasks();
@@ -475,7 +477,7 @@ const MK_M='wb_month_v1';
 const GK='wb_goals_v1';
 let monthTasks=[];
 try{monthTasks=JSON.parse(localStorage.getItem(MK_M))||[];}catch(e){monthTasks=[];}
-monthTasks=monthTasks.map(t=>({id:t.id,text:t.text,done:!!t.done,goal:t.goal||''}));
+monthTasks=monthTasks.map(t=>({id:String(t.id),text:t.text,done:!!t.done,goal:t.goal||''}));
 let goals=null;
 try{goals=JSON.parse(localStorage.getItem(GK));}catch(e){goals=null;}
 if(!Array.isArray(goals)||!goals.length) goals=['目标1','目标2','目标3','目标4','目标5'];
@@ -499,20 +501,23 @@ function addGoalItem(gi){
   svM(); renderGoals();
   const again=$('gin_'+gi); if(again)again.focus();
 }
-function togM(id){const t=monthTasks.find(x=>x.id===id);if(t){t.done=!t.done;svM();renderGoals();}}
-function delM(id){monthTasks=monthTasks.filter(x=>x.id!==id);try{svM();}catch(e){}renderGoals();}
+function togM(id){id=String(id);const t=monthTasks.find(x=>x.id===id);if(t){t.done=!t.done;svM();renderGoals();}}
+function delM(id){id=String(id);monthTasks=monthTasks.filter(x=>x.id!==id);if(!deletedIds.includes(id))deletedIds.push(id);svM();svD();renderGoals();}
 function delGoal(gi){
   const g=goals[gi]; if(g===undefined)return;
   const cnt=monthTasks.filter(t=>t.goal===g).length;
   if(cnt>0 && !confirm(`目标「${g}」下还有 ${cnt} 条内容，删除目标会一并删除这些内容，确定吗？`)) return;
+  monthTasks.filter(t=>t.goal===g).forEach(t=>{const i=String(t.id);if(!deletedIds.includes(i))deletedIds.push(i);});
   goals.splice(gi,1);
+  if(!deletedGoals.includes(g))deletedGoals.push(g);
   monthTasks=monthTasks.filter(t=>t.goal!==g);
-  svG(); svM(); renderGoals();
+  svG(); svDG(); svM(); svD(); renderGoals();
   toast('已删除目标：'+g);
 }
 function clearMonthDone(){
-  const n=monthTasks.filter(t=>t.done).length;if(!n){toast('没有已完成的');return;}
-  monthTasks=monthTasks.filter(t=>!t.done);svM();renderGoals();toast(`清除了 ${n} 条`);
+  const done=monthTasks.filter(t=>t.done);const n=done.length;if(!n){toast('没有已完成的');return;}
+  done.forEach(t=>{const i=String(t.id);if(!deletedIds.includes(i))deletedIds.push(i);});
+  monthTasks=monthTasks.filter(t=>!t.done);svM();svD();renderGoals();toast(`清除了 ${n} 条`);
 }
 function renderGoals(){
   $('goalGroups').innerHTML=goals.map((g,gi)=>{
@@ -522,9 +527,9 @@ function renderGoals(){
       <div class="quad-head"><span class="dot" style="background:#e0a800"></span>🎯 ${esc(g)}<span class="badge">${done}/${list.length}</span><button class="ti-del" onclick="delGoal(${gi})" title="删除此目标">✕</button></div>
       <div class="quad-body">${list.length?list.map(t=>`
         <div class="ti ${t.done?'done':''}">
-          <input type="checkbox" ${t.done?'checked':''} onchange="togM(${t.id})">
+          <input type="checkbox" ${t.done?'checked':''} onchange="togM('${t.id}')">
           <span class="ti-txt">${esc(t.text)}</span>
-          <button class="ti-del" onclick="delM(${t.id})">✕</button>
+          <button class="ti-del" onclick="delM('${t.id}')">✕</button>
         </div>`).join(''):`<div class="quad-empty">这个目标还没有内容，在下方添加</div>`}
         <div class="goal-add">
           <input type="text" id="gin_${gi}" placeholder="给「${esc(g)}」加一条内容，回车或＋" maxlength="80" onkeydown="if(event.key==='Enter')addGoalItem(${gi})">
@@ -588,7 +593,7 @@ function cp(t){navigator.clipboard?navigator.clipboard.writeText(t).then(()=>toa
 const MK='wb_memo_v1';    // 旧版整篇文本（仅迁移用）
 const MEMK='wb_memos_v1'; // 新版列表
 let memos=[];
-try{memos=JSON.parse(localStorage.getItem(MEMK))||[];}catch(e){memos=[];}
+try{memos=(JSON.parse(localStorage.getItem(MEMK))||[]).map(m=>({...m,id:String(m.id)}));}catch(e){memos=[];}
 // 旧版迁移：把旧的整篇备忘文本转成第一条
 (function(){
   let hasNew=false; try{hasNew=localStorage.getItem(MEMK)!==null;}catch(e){}
@@ -612,18 +617,25 @@ function addMemo(){
   inp.value=''; renderMemos(); inp.focus();
   if(ok)toast('✅ 已添加');
 }
-function delMemo(id){memos=memos.filter(m=>m.id!==id);svMemo();renderMemos();}
+function delMemo(id){id=String(id);memos=memos.filter(m=>m.id!==id);if(!deletedIds.includes(id))deletedIds.push(id);svMemo();svD();renderMemos();}
 function renderMemos(){
   $('memoList').innerHTML=memos.map(m=>`
     <div class="memo-item">
       <span class="mi-txt">${esc(m.text)}</span>
       <span class="mi-time">${(m.ts||'').slice(5,10).replace('-','/')}</span>
-      <button class="mi-del" onclick="delMemo(${m.id})">✕</button>
+      <button class="mi-del" onclick="delMemo('${m.id}')">✕</button>
     </div>`).join('');
   const tip=$('memoTip'); if(tip)tip.style.display=memos.length?'none':'';
 }
 (function(){const mi=$('memoIn'); if(mi) mi.addEventListener('keydown',e=>{if(e.key==='Enter')addMemo();});})();
 renderMemos();
+
+/* ==================== 墓碑（删除同步核心） ==================== */
+// 删除某条目时，除了从列表移除，还把它的 id 记入墓碑。
+// 拉取云端时按 id 并集再剔除墓碑，即使本地删除还没推上去，也不会被旧云端数据「复活」。
+const DK='wb_deleted_v1', DGK='wb_deleted_goals_v1';
+let deletedIds=[]; try{deletedIds=(JSON.parse(localStorage.getItem(DK))||[]).map(String);}catch(e){deletedIds=[];}
+let deletedGoals=[]; try{deletedGoals=(JSON.parse(localStorage.getItem(DGK))||[]).map(String);}catch(e){deletedGoals=[];}
 
 /* ==================== 云端同步（Supabase） ==================== */
 const SYNC_CFG='wb_sync_cfg';
@@ -660,37 +672,80 @@ async function sbPull(code){
 }
 
 var pushTimer; // 用 var 提升声明：初始化早期的迁移会调用 schedulePush，避免 let 暂时性死区
+var dirty=false;
+function markDirty(){dirty=true;}
+
+// 墓碑落盘 + 标记脏（与 sv/svM 行为一致）
+function svD(){try{localStorage.setItem(DK,JSON.stringify(deletedIds));}catch(e){}schedulePush();}
+function svDG(){try{localStorage.setItem(DGK,JSON.stringify(deletedGoals));}catch(e){}schedulePush();}
+
+// 防抖推送：任何本地改动后 800ms 内统一推一次
 function schedulePush(){
-  const c=getCfg();if(!c)return; // 未配置则不推送
+  const c=getCfg();if(!c)return;
+  markDirty();
   clearTimeout(pushTimer);
-  pushTimer=setTimeout(async()=>{
-    try{
-      const payload={tasks,monthTasks,goals,memos,ts:new Date().toISOString()};
-      await sbPush(c.code,payload);
-      syncStatus('☁️ 已同步到云端 '+new Date().toLocaleTimeString('zh-CN'),true);
-    }catch(e){syncStatus('☁️ 同步失败：'+(c?'检查网络/配置':'未配置'),false);}
-  },800);
+  pushTimer=setTimeout(()=>{ pushNow(); },800);
+}
+
+// 即时推送（切后台/重开前调用，确保删除等改动先落地云端）
+async function pushNow(){
+  const c=getCfg();if(!c)return;
+  try{
+    const payload={tasks,monthTasks,goals,memos,deletedIds,deletedGoals,ts:new Date().toISOString()};
+    await sbPush(c.code,payload);
+    dirty=false;
+    syncStatus('☁️ 已同步到云端 '+new Date().toLocaleTimeString('zh-CN'),true);
+  }catch(e){syncStatus('☁️ 同步失败：'+(c?'检查网络/配置':'未配置'),false);}
+}
+
+// 拉取前先把本地未推送的改动（含墓碑）推上去，保证合并基准是最新
+async function flushBeforePull(){ if(dirty){ try{await pushNow();}catch(e){} } }
+
+// 按 id 并集合并两份列表；墓碑里的 id 一律剔除（删除永久生效）；本地改动优先于云端
+function mergeList(local,cloud,del){
+  const map={};
+  (cloud||[]).forEach(it=>{ if(it&&it.id!=null&&!del.includes(String(it.id))) map[String(it.id)]=it; });
+  (local||[]).forEach(it=>{ if(it&&it.id!=null&&!del.includes(String(it.id))) map[String(it.id)]=it; });
+  return Object.keys(map).map(k=>map[k]);
 }
 
 async function cloudPull(){
   const c=getCfg();if(!c)return;
   try{
+    await flushBeforePull(); // 先确保本地删除已上云，再合并
     const row=await sbPull(c.code);
     if(row&&row.payload){
-      if(row.payload.tasks){tasks=row.payload.tasks;localStorage.setItem(TK,JSON.stringify(tasks));renderTasks();}
-      if(Array.isArray(row.payload.goals)&&row.payload.goals.length){goals=row.payload.goals;svG();}
-      if(row.payload.monthTasks){monthTasks=row.payload.monthTasks.map(t=>({id:t.id,text:t.text,done:!!t.done,goal:t.goal||goals[0]}));monthTasks.forEach(t=>{if(!goals.includes(t.goal))goals.push(t.goal);});svG();localStorage.setItem(MK_M,JSON.stringify(monthTasks));renderGoals();}
-      if(Array.isArray(row.payload.memos)){memos=row.payload.memos;localStorage.setItem(MEMK,JSON.stringify(memos));renderMemos();}
-      else if(row.payload.memo){memos=[{id:uid(),text:row.payload.memo,ts:new Date().toISOString()}];localStorage.setItem(MEMK,JSON.stringify(memos));renderMemos();}
+      const p=row.payload;
+      const del=Array.from(new Set([...(deletedIds||[]), ...(p.deletedIds||[])]));        // 墓碑取并集
+      const delG=Array.from(new Set([...(deletedGoals||[]), ...(p.deletedGoals||[])]));
+      if(p.tasks){ tasks=mergeList(tasks,p.tasks,del).map(t=>({id:String(t.id),text:t.text,quad:t.quad||'q3',done:!!t.done})); localStorage.setItem(TK,JSON.stringify(tasks)); renderTasks(); }
+      if(Array.isArray(p.goals)){
+        let g=Array.from(new Set([...goals,...p.goals])).filter(x=>!delG.includes(x));
+        if(!g.length) g=['目标1','目标2','目标3','目标4','目标5'];
+        goals=g; svG();
+      }
+      if(p.monthTasks){
+        monthTasks=mergeList(monthTasks,p.monthTasks,del)
+          .map(t=>({id:String(t.id),text:t.text,done:!!t.done,goal:(t.goal&&goals.includes(t.goal))?t.goal:goals[0]}));
+        monthTasks.forEach(t=>{ if(!goals.includes(t.goal)) goals.push(t.goal); });
+        svG(); localStorage.setItem(MK_M,JSON.stringify(monthTasks)); renderGoals();
+      }
+      if(Array.isArray(p.memos)){ memos=mergeList(memos,p.memos,del).map(m=>({id:String(m.id),text:m.text,ts:m.ts||new Date().toISOString()})); localStorage.setItem(MEMK,JSON.stringify(memos)); renderMemos(); }
+      else if(p.memo){ memos=[{id:uid(),text:p.memo,ts:new Date().toISOString()}]; localStorage.setItem(MEMK,JSON.stringify(memos)); renderMemos(); }
+      // 落盘并集后的墓碑
+      deletedIds=del; deletedGoals=delG;
+      try{localStorage.setItem(DK,JSON.stringify(deletedIds));localStorage.setItem(DGK,JSON.stringify(deletedGoals));}catch(e){}
+      dirty=false;
       syncStatus('☁️ 已从云端拉取最新 '+new Date().toLocaleTimeString('zh-CN'),true);
     }else{
       // 云端为空：若本机已有数据，则把本机作为种子推上去，避免被空数据覆盖
       const hasLocal=(tasks&&tasks.length)||(monthTasks&&monthTasks.length)||(memos&&memos.length);
-      if(hasLocal){try{await sbPush(c.code,{tasks,monthTasks,goals,memos,ts:new Date().toISOString()});syncStatus('☁️ 已上传本机数据到云端',true);}catch(e){syncStatus('☁️ 云端暂无数据，已保留本机',true);}}
+      if(hasLocal){try{await pushNow();syncStatus('☁️ 已上传本机数据到云端',true);}catch(e){syncStatus('☁️ 云端暂无数据，已保留本机',true);}}
       else{syncStatus('☁️ 云端暂无数据，已保留本机',true);}
     }
   }catch(e){syncStatus('☁️ 拉取失败，使用本机数据',false);}
 }
+
 
 // 手动同步按钮：已配置→云端推送；未配置→导出JSON
 function doSync(){
@@ -700,7 +755,7 @@ function doSync(){
   cloudPull().then(()=>schedulePush());
 }
 function exportJSON(){
-  const data={tasks,monthTasks,goals,memos,ts:new Date().toISOString()};
+  const data={tasks,monthTasks,goals,memos,deletedIds,deletedGoals,ts:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=`workbench_backup_${new Date().toISOString().slice(0,10)}.json`;a.click();
@@ -712,11 +767,13 @@ function importData(file){
   fr.onload=function(){
     try{
       const d=JSON.parse(fr.result);
-      if(d.tasks){tasks=d.tasks;sv();renderTasks();}
+      if(d.tasks){tasks=(d.tasks||[]).map(t=>({...t,id:String(t.id)}));sv();renderTasks();}
       if(Array.isArray(d.goals)&&d.goals.length){goals=d.goals;svG();}
-      if(d.monthTasks){monthTasks=d.monthTasks.map(t=>({id:t.id,text:t.text,done:!!t.done,goal:t.goal||goals[0]}));monthTasks.forEach(t=>{if(!goals.includes(t.goal))goals.push(t.goal);});svG();svM();renderGoals();}
-      if(Array.isArray(d.memos)){memos=d.memos;svMemo();renderMemos();}
+      if(d.monthTasks){monthTasks=(d.monthTasks||[]).map(t=>({id:String(t.id),text:t.text,done:!!t.done,goal:t.goal||goals[0]}));monthTasks.forEach(t=>{if(!goals.includes(t.goal))goals.push(t.goal);});svG();svM();renderGoals();}
+      if(Array.isArray(d.memos)){memos=(d.memos||[]).map(m=>({...m,id:String(m.id)}));svMemo();renderMemos();}
       else if(d.memo){memos=[{id:uid(),text:d.memo,ts:new Date().toISOString()}];svMemo();renderMemos();}
+      if(Array.isArray(d.deletedIds)){deletedIds=Array.from(new Set([...deletedIds,...d.deletedIds.map(String)]));svD();}
+      if(Array.isArray(d.deletedGoals)){deletedGoals=Array.from(new Set([...deletedGoals,...d.deletedGoals.map(String)]));svDG();}
       toast('数据导入成功！');
     }catch(e){toast('文件格式错误');}
   };
@@ -757,7 +814,11 @@ if(getCfg()){ cloudPull(); }
 // 实时同步：手机端不重启 App 也能自动拿到另一端的改动
 // 每 30 秒从云端拉取一次；切回前台（从后台返回）立即拉取一次
 setInterval(()=>{ if(document.visibilityState==='visible') cloudPull(); }, 30000);
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') cloudPull(); });
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){ cloudPull(); }
+  else if(dirty){ pushNow(); } // 切到后台/锁屏前，先把待推送的删除等改动落地云端
+});
+window.addEventListener('pagehide',()=>{ if(dirty) pushNow(); }); // App 被杀/刷新前兜底推送
 
 /* ==================== 初始化导航 ==================== */
 renderNav();
