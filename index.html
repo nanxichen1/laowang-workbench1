@@ -688,10 +688,26 @@ function schedulePush(){
 }
 
 // 即时推送（切后台/重开前调用，确保删除等改动先落地云端）
+// 关键：采用「读取-合并-写入」，推送时把云端另一端的数据一起并入，避免覆盖对方
 async function pushNow(){
   const c=getCfg();if(!c)return;
   try{
-    const payload={tasks,monthTasks,goals,memos,deletedIds,deletedGoals,ts:new Date().toISOString()};
+    const local={tasks,monthTasks,goals,memos,deletedIds,deletedGoals};
+    let merged=local;
+    try{
+      const row=await sbPull(c.code);
+      if(row&&row.payload){
+        const p=row.payload;
+        const del=Array.from(new Set([...local.deletedIds, ...(p.deletedIds||[])]));
+        const delG=Array.from(new Set([...local.deletedGoals, ...(p.deletedGoals||[])]));
+        const tasksM=mergeList(local.tasks,p.tasks||[],del).map(t=>({id:String(t.id),text:t.text,quad:t.quad||'q3',done:!!t.done}));
+        let g=Array.from(new Set([...local.goals,...(p.goals||[])])); g=g.filter(x=>!delG.includes(x)); if(!g.length)g=['目标1','目标2','目标3','目标4','目标5'];
+        const monthM=mergeList(local.monthTasks,p.monthTasks||[],del).map(t=>({id:String(t.id),text:t.text,done:!!t.done,goal:(t.goal&&g.includes(t.goal))?t.goal:g[0]}));
+        const memosM=mergeList(local.memos,p.memos||[],del).map(m=>({id:String(m.id),text:m.text,ts:m.ts||new Date().toISOString()}));
+        merged={tasks:tasksM,monthTasks:monthM,goals:g,memos:memosM,deletedIds:del,deletedGoals:delG};
+      }
+    }catch(e){ /* 读不到云端就仅用本地 */ }
+    const payload={...merged,ts:new Date().toISOString()};
     await sbPush(c.code,payload);
     dirty=false;
     syncStatus('☁️ 已同步到云端 '+new Date().toLocaleTimeString('zh-CN'),true);
