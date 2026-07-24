@@ -9,7 +9,7 @@ import android.webkit.WebChromeClient;
 
 public class MainActivity extends Activity {
     private WebView webView;
-    private static final String APP_URL = "https://27b9aa5683dc4c1d9bbd2a5192cff460.app.codebuddy.work";
+    private static final String APP_URL = "https://nanxichen1.github.io/laowang-workbench1/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
