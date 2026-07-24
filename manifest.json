@@ -2,8 +2,8 @@
   "name": "老王日志",
   "short_name": "老王日志",
   "description": "老王日志 · 每日任务管理 + 抖音爆款二创灵感",
-  "start_url": "/index.html",
-  "scope": "/",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "display_override": [
     "fullscreen",
